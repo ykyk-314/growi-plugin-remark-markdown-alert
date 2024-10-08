@@ -1,8 +1,5 @@
-import { Root, RootContent } from 'mdast'; // これでmdastの型を使用
-import { toMarkdown } from 'mdast-util-to-markdown';
 import type { Plugin } from 'unified';
 import { visit } from 'unist-util-visit';
-
 
 interface GrowiNode extends Node {
   name?: string;
@@ -11,12 +8,6 @@ interface GrowiNode extends Node {
   children: GrowiNode[];
   value?: string;
 }
-
-declare const growiFacade: {
-  markdownRenderer?: {
-    parse?: (content: string) => string;
-  };
-};
 
 export const plugin: Plugin = function() {
   return (tree) => {
@@ -27,6 +18,7 @@ export const plugin: Plugin = function() {
 
         if (paragraph.type === 'paragraph' && paragraph.children && paragraph.children.length > 0) {
           console.log(JSON.parse(JSON.stringify(node)));
+          console.log(JSON.parse(JSON.stringify(node.children)));
           // paragraph内の最初のテキスト要素
           const textNode = paragraph.children[0];
           if (textNode.type === 'text' && textNode.value) {
@@ -42,25 +34,26 @@ export const plugin: Plugin = function() {
               // アラート記法タグを除いた残りの子要素を保持
               const remainingContent = paragraph.children.slice(1);
 
-              // 残りのMarkdownコンテンツを再度Markdownとして解析
-              // mdast-util-to-markdown を使って残りのノードをMarkdownに変換
-              const markdownContent = toMarkdown({
-                type: 'root',
-                children: remainingContent,
-              } as Root); // mdastのRootとして処理
-
-              // GrowiのmarkdownRendererを使って再パース
-              const renderedHTML = growiFacade.markdownRenderer?.parse
-                ? growiFacade.markdownRenderer.parse(markdownContent)
-                : markdownContent; // パースできない場合はそのままテキストを出力
-
-              console.log(JSON.parse(JSON.stringify(renderedHTML)));
+              // 残りのコンテンツを連結してHTMLとして出力する
+              const innerHTML = remainingContent.map((child) => {
+                if (child.type === 'text') {
+                  return `<p>${child.value}</p>`;
+                }
+                if (child.type === 'break') {
+                  return '<br>';
+                }
+                if (child.type === 'paragraph') {
+                  return `<p>${child.children.map(subChild => subChild.value || '').join('')}</p>`;
+                }
+                return '';
+              }).join('');
+              console.log(JSON.parse(JSON.stringify(innerHTML)));
 
               // HTMLとしてカスタムアラートを生成
               node.type = 'html';
               node.value = `
                 <div class="callout callout-${alertType}">
-                  ${renderedHTML}
+                  ${innerHTML}
                 </div>
               `;
               // 子要素をクリア
