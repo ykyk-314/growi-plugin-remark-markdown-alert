@@ -1,5 +1,9 @@
+import { toMarkdown } from 'mdast-util-to-markdown';
 import type { Plugin } from 'unified';
 import { visit } from 'unist-util-visit';
+import { is } from 'unist-util-is';
+import { Root, RootContent } from 'mdast'; // これでmdastの型を使用
+
 
 interface GrowiNode extends Node {
   name?: string;
@@ -24,6 +28,7 @@ export const plugin: Plugin = function() {
 
         if (paragraph.type === 'paragraph' && paragraph.children && paragraph.children.length > 0) {
           console.log(JSON.parse(JSON.stringify(node)));
+          return;
           // paragraph内の最初のテキスト要素
           const textNode = paragraph.children[0];
           if (textNode.type === 'text' && textNode.value) {
@@ -40,15 +45,11 @@ export const plugin: Plugin = function() {
               const remainingContent = paragraph.children.slice(1);
 
               // 残りのMarkdownコンテンツを再度Markdownとして解析
-              const markdownContent = remainingContent.map((child) => {
-                if (child.type === 'text') {
-                  return child.value; // すべてのテキストノードを連結
-                }
-                if (child.type === 'break') {
-                  return '\n'; // 改行はそのまま
-                }
-                return ''; // その他のノードは空として扱う
-              }).join('');
+              // mdast-util-to-markdown を使って残りのノードをMarkdownに変換
+              const markdownContent = toMarkdown({
+                type: 'root',
+                children: remainingContent,
+              });
 
               // GrowiのmarkdownRendererを使って再パース
               const renderedHTML = growiFacade.markdownRenderer?.parse
