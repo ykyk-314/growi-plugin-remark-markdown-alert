@@ -12,7 +12,7 @@ interface GrowiNode extends Node {
 export const plugin: Plugin = function() {
   return (tree) => {
     visit(tree, 'blockquote', (node: GrowiNode) => {
-      console.log(node);
+      console.log(JSON.parse(JSON.stringify(node)));
       if (node.children && node.children.length > 0) {
         // 最初の子要素であるparagraphを取得
         const paragraph = node.children[0];
