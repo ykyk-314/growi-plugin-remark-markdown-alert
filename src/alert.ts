@@ -9,49 +9,59 @@ interface GrowiNode extends Node {
   value?: string;
 }
 
+declare const growiFacade: {
+  markdownRenderer?: {
+    parse?: (content: string) => string;
+  };
+};
+
 export const plugin: Plugin = function() {
   return (tree) => {
     visit(tree, 'blockquote', (node: GrowiNode) => {
-      console.log(JSON.parse(JSON.stringify(node)));
       if (node.children && node.children.length > 0) {
         // 最初の子要素であるparagraphを取得
         const paragraph = node.children[0];
 
         if (paragraph.type === 'paragraph' && paragraph.children && paragraph.children.length > 0) {
+          console.log(JSON.parse(JSON.stringify(node)));
           // paragraph内の最初のテキスト要素
           const textNode = paragraph.children[0];
           if (textNode.type === 'text' && textNode.value) {
             const content = textNode.value.trim();
             const match = content.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](.*)$/);
 
-            console.log(content);
-            console.log(match);
             if (match) {
-              const alertType = match[1].toLowerCase(); // NOTE, TIP, WARNING など
+              console.log(content);
+              console.log(match);
+              // アラート記法タグの取得
+              const alertType = match[1].toLowerCase();
 
-              // アラート記法のタグ部分をスキップし、それ以外の内容を全て取得
+              // アラート記法タグを除いた残りの子要素を保持
               const remainingContent = paragraph.children.slice(1);
 
-              // 残りのコンテンツを連結してHTMLとして出力する
-              const innerHTML = remainingContent.map((child) => {
+              // 残りのMarkdownコンテンツを再度Markdownとして解析
+              const markdownContent = remainingContent.map((child) => {
                 if (child.type === 'text') {
-                  return `<p>${child.value}</p>`;
+                  return child.value; // すべてのテキストノードを連結
                 }
                 if (child.type === 'break') {
-                  return '<br>';
+                  return '\n'; // 改行はそのまま
                 }
-                if (child.type === 'paragraph') {
-                  return `<p>${child.children.map(subChild => subChild.value || '').join('')}</p>`;
-                }
-                return '';
+                return ''; // その他のノードは空として扱う
               }).join('');
-              console.log(JSON.parse(JSON.stringify(innerHTML)));
+
+              // GrowiのmarkdownRendererを使って再パース
+              const renderedHTML = growiFacade.markdownRenderer?.parse
+                ? growiFacade.markdownRenderer.parse(markdownContent)
+                : markdownContent; // パースできない場合はそのままテキストを出力
+
+              console.log(JSON.parse(JSON.stringify(renderedHTML)));
 
               // HTMLとしてカスタムアラートを生成
               node.type = 'html';
               node.value = `
                 <div class="callout callout-${alertType}">
-                  ${innerHTML}
+                  ${renderedHTML}
                 </div>
               `;
               // 子要素をクリア
