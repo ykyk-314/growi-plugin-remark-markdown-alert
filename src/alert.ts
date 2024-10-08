@@ -45,6 +45,19 @@ export const plugin: Plugin = function() {
                 if (child.type === 'paragraph') {
                   return `<p>${child.children.map(subChild => subChild.value || '').join('')}</p>`;
                 }
+                if (child.type === 'strong') {
+                  return `<strong>${child.children.map(subChild => subChild.value || '').join('')}</strong>`;
+                }
+                if (child.type === 'emphasis') {
+                  return `<em>${child.children.map(subChild => subChild.value || '').join('')}</em>`;
+                }
+                if (child.type === 'delete') {
+                  return `<del>${child.children.map(subChild => subChild.value || '').join('')}</del>`;
+                }
+                if (child.type === 'list') {
+                  const items = child.children.map(listItem => `<li>${listItem.children.map(subChild => subChild.value || '').join('')}</li>`).join('');
+                  return `<ul>${items}</ul>`;
+                }
                 return '';
               }).join('');
               console.log(JSON.parse(JSON.stringify(innerHTML)));
