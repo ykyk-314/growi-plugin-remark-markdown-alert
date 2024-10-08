@@ -51,7 +51,7 @@ export const plugin: Plugin = function() {
               node.type = 'html';
               node.value = `
                 <div class="callout callout-${alertType}">
-                  <blockquote>${innerHTML}</blockquote>
+                  ${innerHTML}
                 </div>
               `;
               // 子要素をクリア
