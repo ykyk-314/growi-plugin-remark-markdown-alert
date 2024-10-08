@@ -2,19 +2,21 @@ import type { Plugin } from 'unified';
 import { visit } from 'unist-util-visit';
 
 interface GrowiNode extends Node {
-  name: string;
+  name?: string;
   type: string;
   attributes: {[key: string]: string}
   children: GrowiNode[];
-  value: string;
+  value?: string;
 }
 
 export const plugin: Plugin = function() {
   return (tree) => {
     visit(tree, 'blockquote', (node: GrowiNode) => {
-      const content = node.children[0]?.value.trim();
-      if (content) {
+      // `children`が存在し、最初の子要素が存在するかをチェック
+      if (node.children && node.children.length > 0 && node.children[0].value) {
+        const content = node.children[0].value.trim(); // `trim()` を実行する前にチェック
         const match = content.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](.*)$/);
+
         if (match) {
           const alertType = match[1].toLowerCase(); // NOTE, TIP, WARNING など
           const alertContent = match[2].trim(); // アラート内容
@@ -22,10 +24,12 @@ export const plugin: Plugin = function() {
           // HTMLとしてカスタムアラートを生成
           node.type = 'html';
           node.value = `
-            <div class="callout callout-${alertType}">
+            <div class="custom-alert alert-${alertType}">
+              <strong>${alertType.toUpperCase()}</strong>
               <p>${alertContent}</p>
             </div>
           `;
+          // 子要素をクリア
           node.children = [];
         }
       }
