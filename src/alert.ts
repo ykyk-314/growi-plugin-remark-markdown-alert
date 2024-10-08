@@ -12,6 +12,7 @@ interface GrowiNode extends Node {
 export const plugin: Plugin = function() {
   return (tree) => {
     visit(tree, 'blockquote', (node: GrowiNode) => {
+      console.log(node);
       if (node.children && node.children.length > 0) {
         // 最初の子要素であるparagraphを取得
         const paragraph = node.children[0];
@@ -24,15 +25,17 @@ export const plugin: Plugin = function() {
             const content = textNode.value.trim();
             console.log(content);
 
-            const match = content.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](.*)$/);
+            const match = content
+              .match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](.*)$/);
             if (match) {
+              console.log(match);
               const alertType = match[1].toLowerCase(); // NOTE, TIP, WARNING など
               const alertContent = match[2].trim(); // アラート内容
 
               // HTMLとしてカスタムアラートを生成
               node.type = 'html';
               node.value = `
-                <div class="custom-alert alert-${alertType}">
+                <div class="callout callout-${alertType}">
                   <strong>${alertType.toUpperCase()}</strong>
                   <p>${alertContent}</p>
                 </div>
