@@ -1,11 +1,9 @@
 {
-  "name": "growi-plugin-remark-youtube",
+  "name": "growi-plugin-remark-markdown-alert",
   "version": "1.0.0",
-  "description": "GROWI plugin template for script",
+  "description": "GROWI plugin Remark alert syntax",
   "license": "MIT",
   "keywords": [
-    "growi",
-    "growi-plugin"
   ],
   "type": "module",
   "scripts": {
