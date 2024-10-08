@@ -13,8 +13,12 @@ export const plugin: Plugin = function() {
   return (tree) => {
     visit(tree, 'blockquote', (node: GrowiNode) => {
       // `children`が存在し、最初の子要素が存在するかをチェック
+      console.log(node);
+      console.log(node.children);
+      console.log(node.children.length);
       if (node.children && node.children.length > 0 && node.children[0].value) {
         const content = node.children[0].value.trim(); // `trim()` を実行する前にチェック
+        console.log(content);
         const match = content.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](.*)$/);
 
         if (match) {
