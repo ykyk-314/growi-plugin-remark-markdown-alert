@@ -31,48 +31,19 @@ const getMarkdownContent = (node: GrowiNode): string => {
 export const plugin: Plugin = function() {
   return (tree) => {
     visit(tree, 'blockquote', (node: GrowiNode) => {
+      console.log('node: ', JSON.parse(JSON.stringify(node)));
       if (node.children && node.children.length > 0) {
         const paragraph = node.children[0];
 
+        console.log('paragraph: ', JSON.parse(JSON.stringify(paragraph)));
+
         if (paragraph.type === 'paragraph' && paragraph.children && paragraph.children.length > 0) {
+          console.log('paragraph.children: ', JSON.parse(JSON.stringify(paragraph.children)));
           const textNode = paragraph.children[0];
 
           if (textNode.type === 'text' && textNode.value) {
             const content = textNode.value.trim();
             const match = content.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](.*)$/);
-
-            if (match) {
-              const alertType = match[1].toLowerCase(); // NOTE, TIP, WARNING など
-
-              // アラート記法タグを削除した後の残りのMarkdownコンテンツを取得
-              const remainingContent = paragraph.children.slice(1);
-
-              // 残りのコンテンツを再帰的に取得
-              const markdownContent = remainingContent.map(getMarkdownContent).join('\n');
-
-              // GrowiのmarkdownRendererを使って残りのコンテンツを再パース
-              let renderedContent = '';
-              if (growiFacade.markdownRenderer && growiFacade.markdownRenderer.parse) {
-                renderedContent = growiFacade.markdownRenderer.parse(markdownContent);
-              }
-              else {
-                renderedContent = markdownContent; // フォールバックとして元のMarkdownを返す
-              }
-
-              // アラート記法用のカスタムHTMLを生成
-              const alertHTML = `
-                <div class="callout callout-${alertType}">
-                  ${renderedContent}
-                </div>
-              `;
-
-              // アラート部分をカスタマイズしてHTMLに変換
-              node.type = 'html';
-              node.value = alertHTML;
-
-              // 子要素をクリア
-              node.children = [];
-            }
           }
         }
       }
