@@ -4,71 +4,72 @@ import { visit } from 'unist-util-visit';
 interface GrowiNode extends Node {
   name?: string;
   type: string;
-  attributes: {[key: string]: string}
+  attributes: { [key: string]: string };
   children: GrowiNode[];
   value?: string;
 }
+
+declare const growiFacade: {
+  markdownRenderer?: {
+    parse?: (content: string) => string;
+  };
+};
+
+// 再帰的に子要素を処理して、Markdownの内容を取得
+const getMarkdownContent = (node: GrowiNode): string => {
+  if (node.value) {
+    return node.value;
+  }
+
+  if (node.children && node.children.length > 0) {
+    return node.children.map(getMarkdownContent).join('');
+  }
+
+  return ''; // valueやchildrenが存在しない場合は空文字を返す
+};
 
 export const plugin: Plugin = function() {
   return (tree) => {
     visit(tree, 'blockquote', (node: GrowiNode) => {
       if (node.children && node.children.length > 0) {
-        // 最初の子要素であるparagraphを取得
         const paragraph = node.children[0];
 
         if (paragraph.type === 'paragraph' && paragraph.children && paragraph.children.length > 0) {
-          console.log(JSON.parse(JSON.stringify(node)));
-          console.log(JSON.parse(JSON.stringify(node.children)));
-          // paragraph内の最初のテキスト要素
           const textNode = paragraph.children[0];
+
           if (textNode.type === 'text' && textNode.value) {
             const content = textNode.value.trim();
             const match = content.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](.*)$/);
 
             if (match) {
-              console.log(content);
-              console.log(match);
-              // アラート記法タグの取得
-              const alertType = match[1].toLowerCase();
+              const alertType = match[1].toLowerCase(); // NOTE, TIP, WARNING など
 
-              // アラート記法タグを除いた残りの子要素を保持
+              // アラート記法タグを削除した後の残りのMarkdownコンテンツを取得
               const remainingContent = paragraph.children.slice(1);
 
-              // 残りのコンテンツを連結してHTMLとして出力する
-              const innerHTML = remainingContent.map((child) => {
-                if (child.type === 'text') {
-                  return `<p>${child.value}</p>`;
-                }
-                if (child.type === 'break') {
-                  return '<br>';
-                }
-                if (child.type === 'paragraph') {
-                  return `<p>${child.children.map(subChild => subChild.value || '').join('')}</p>`;
-                }
-                if (child.type === 'strong') {
-                  return `<strong>${child.children.map(subChild => subChild.value || '').join('')}</strong>`;
-                }
-                if (child.type === 'emphasis') {
-                  return `<em>${child.children.map(subChild => subChild.value || '').join('')}</em>`;
-                }
-                if (child.type === 'delete') {
-                  return `<del>${child.children.map(subChild => subChild.value || '').join('')}</del>`;
-                }
-                if (child.type === 'list') {
-                  const items = child.children.map(listItem => `<li>${listItem.children.map(subChild => subChild.value || '').join('')}</li>`).join('');
-                  return `<ul>${items}</ul>`;
-                }
-                return '';
-              }).join('');
-              console.log(JSON.parse(JSON.stringify(innerHTML)));
+              // 残りのコンテンツを再帰的に取得
+              const markdownContent = remainingContent.map(getMarkdownContent).join('\n');
 
-              // HTMLとしてカスタムアラートを生成
-              node.type = 'html';
-              node.value = `
+              // GrowiのmarkdownRendererを使って残りのコンテンツを再パース
+              let renderedContent = '';
+              if (growiFacade.markdownRenderer && growiFacade.markdownRenderer.parse) {
+                renderedContent = growiFacade.markdownRenderer.parse(markdownContent);
+              }
+              else {
+                renderedContent = markdownContent; // フォールバックとして元のMarkdownを返す
+              }
+
+              // アラート記法用のカスタムHTMLを生成
+              const alertHTML = `
                 <div class="callout callout-${alertType}">
-                  ${innerHTML}
+                  ${renderedContent}
                 </div>
               `;
+
+              // アラート部分をカスタマイズしてHTMLに変換
+              node.type = 'html';
+              node.value = alertHTML;
+
               // 子要素をクリア
               node.children = [];
             }
